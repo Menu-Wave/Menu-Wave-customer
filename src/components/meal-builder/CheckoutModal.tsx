@@ -2,10 +2,11 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { Check, X, Clock, ChefHat, Bell } from "lucide-react";
 import { useCart, cartTotal } from "@/lib/cart-store";
-import { supabase, formatCurrency, type Restaurant } from "@/lib/supabase";
+import { formatCurrency, type Restaurant } from "@/lib/supabase";
 
 const SUPABASE_ANON_KEY = "sb_publishable_6bs0IPax7ctABcDJrcWW5w_3PHfgfvk";
 const CHECKOUT_URL = "https://wxlhhisfexcltjpvcljo.supabase.co/functions/v1/checkout";
+const TRACK_ORDER_URL = "https://wxlhhisfexcltjpvcljo.supabase.co/functions/v1/track-order";
 
 type OrderStage = "new" | "preparing" | "ready" | "done";
 
@@ -39,7 +40,7 @@ export function CheckoutModal({
   const [placed, setPlaced] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [orderId, setOrderId] = useState<number | null>(null);
+  const [trackingToken, setTrackingToken] = useState<string | null>(null);
   const [orderCode, setOrderCode] = useState<string | null>(null);
   const [status, setStatus] = useState<OrderStage>("new");
   const [connected, setConnected] = useState(true);
@@ -57,26 +58,57 @@ export function CheckoutModal({
   );
 
   useEffect(() => {
-    if (!orderId) return;
+    if (!trackingToken) return;
 
-    const channel = supabase
-      .channel(`order-${orderId}`)
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "orders", filter: `id=eq.${orderId}` },
-        (payload) => {
-          const newStatus = (payload.new as { Status?: string }).Status?.toLowerCase();
-          if (newStatus === "preparing") setStatus("preparing");
-          else if (newStatus === "ready") setStatus("ready");
-          else if (newStatus === "done") setStatus("done");
-        },
-      )
-      .subscribe((subStatus) => setConnected(subStatus === "SUBSCRIBED"));
+    let active = true;
+    let inFlight = false;
+
+    const checkStatus = async () => {
+      if (inFlight) return;
+      inFlight = true;
+
+      try {
+        const response = await fetch(TRACK_ORDER_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            apikey: SUPABASE_ANON_KEY,
+            Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({ token: trackingToken }),
+          cache: "no-store",
+        });
+
+        if (!response.ok) {
+          if (active) setConnected(false);
+          return;
+        }
+
+        const result = await response.json();
+        const nextStatus = String(result?.status ?? "").toLowerCase();
+
+        if (!active) return;
+        if (["new", "preparing", "ready", "done"].includes(nextStatus)) {
+          setStatus(nextStatus as OrderStage);
+          setConnected(true);
+        } else {
+          setConnected(false);
+        }
+      } catch {
+        if (active) setConnected(false);
+      } finally {
+        inFlight = false;
+      }
+    };
+
+    void checkStatus();
+    const interval = window.setInterval(() => void checkStatus(), 5000);
 
     return () => {
-      supabase.removeChannel(channel);
+      active = false;
+      window.clearInterval(interval);
     };
-  }, [orderId]);
+  }, [trackingToken]);
 
   const handlePlace = async () => {
     if (submitting) return;
@@ -121,8 +153,12 @@ export function CheckoutModal({
       }
 
       const orderRow = await response.json();
-      if (orderRow?.id) setOrderId(orderRow.id);
+      if (typeof orderRow?.trackingToken !== "string" || !orderRow.trackingToken) {
+        throw new Error("Checkout response did not include a tracking token");
+      }
+      setTrackingToken(orderRow.trackingToken);
       if (orderRow?.public_code) setOrderCode(orderRow.public_code);
+      setConnected(true);
 
       setPlaced(true);
       setStatus("new");
@@ -137,7 +173,7 @@ export function CheckoutModal({
   const handleCloseAfterDone = () => {
     clear();
     setPlaced(false);
-    setOrderId(null);
+    setTrackingToken(null);
     setOrderCode(null);
     setStatus("new");
     onClose();
@@ -207,7 +243,7 @@ export function CheckoutModal({
                     </p>
                     {!connected && (
                       <p className="mt-2 text-xs text-amber-600">
-                        Reconnecting... if this persists, check the counter directly.
+                        Trying to reconnect... if this persists, check with the counter directly.
                       </p>
                     )}
                   </>
