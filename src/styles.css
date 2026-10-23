@@ -61,35 +61,36 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+
 :root {
   --radius: 0.875rem;
-  --background: oklch(0.985 0.005 75);
-  --foreground: oklch(0.18 0.02 30);
+  --background: oklch(0.985 0.004 247);
+  --foreground: oklch(0.208 0.042 265.755);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.18 0.02 30);
+  --card-foreground: oklch(0.208 0.042 265.755);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.18 0.02 30);
-  --primary: oklch(0.68 0.2 40);
-  --primary-foreground: oklch(0.99 0.005 75);
-  --secondary: oklch(0.96 0.015 60);
-  --secondary-foreground: oklch(0.25 0.04 40);
-  --muted: oklch(0.95 0.012 60);
-  --muted-foreground: oklch(0.5 0.025 50);
-  --accent: oklch(0.93 0.06 55);
-  --accent-foreground: oklch(0.25 0.08 40);
-  --destructive: oklch(0.58 0.22 25);
-  --destructive-foreground: oklch(0.99 0.005 75);
-  --border: oklch(0.9 0.015 60);
-  --input: oklch(0.9 0.015 60);
-  --ring: oklch(0.68 0.2 40);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
+  --popover-foreground: oklch(0.208 0.042 265.755);
+  --primary: oklch(0.546 0.245 262.881);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0.014 254.604);
+  --secondary-foreground: oklch(0.279 0.041 260.031);
+  --muted: oklch(0.968 0.007 247.896);
+  --muted-foreground: oklch(0.554 0.046 257.417);
+  --accent: oklch(0.97 0.014 254.604);
+  --accent-foreground: oklch(0.379 0.146 265.522);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.985 0 0);
+  --border: oklch(0.929 0.013 255.508);
+  --input: oklch(0.929 0.013 255.508);
+  --ring: oklch(0.623 0.214 259.815);
+  --chart-1: oklch(0.623 0.214 259.815);
+  --chart-2: oklch(0.685 0.169 237.323);
+  --chart-3: oklch(0.696 0.17 162.48);
+  --chart-4: oklch(0.769 0.188 70.08);
+  --chart-5: oklch(0.577 0.245 27.325);
   --sidebar: oklch(0.984 0.003 247.858);
   --sidebar-foreground: oklch(0.129 0.042 264.695);
-  --sidebar-primary: oklch(0.208 0.042 265.755);
+  --sidebar-primary: oklch(0.546 0.245 262.881);
   --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
   --sidebar-accent: oklch(0.968 0.007 247.896);
   --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
@@ -142,3 +143,10 @@
     color: var(--color-foreground);
   }
 }
+
+
+/* Menu-Wave customer experience */
+html { scroll-behavior: smooth; }
+body { margin: 0; background: #f8fafc; }
+.mw-customer { background: radial-gradient(circle at 85% 0%, rgba(56,189,248,.08), transparent 28%), #f8fafc; }
+.mw-restaurant-header { box-shadow: 0 8px 28px rgba(15,23,42,.035); }
