@@ -145,12 +145,12 @@ export function DropZone({ currency = "NGN" }: { currency?: string }) {
           transition={{ type: "spring", stiffness: 300, damping: 25 }}
           className={`relative h-full w-full overflow-hidden rounded-[42px] border-[10px] transition-colors ${
             isOver
-              ? "border-amber-300 shadow-[0_0_0_10px_rgba(251,191,36,0.25),0_30px_60px_-20px_rgba(220,38,38,0.5)]"
-              : "border-red-500 shadow-[0_20px_50px_-15px_rgba(220,38,38,0.45)]"
+              ? "border-sky-300 shadow-[0_0_0_10px_rgba(56,189,248,0.16),0_30px_60px_-20px_rgba(37,99,235,0.28)]"
+              : "border-slate-800 shadow-[0_20px_50px_-15px_rgba(15,23,42,0.24)]"
           }`}
           style={{
             background:
-              "radial-gradient(ellipse at 30% 25%, #ff6b6b 0%, #ef4444 45%, #dc2626 100%)",
+              "radial-gradient(ellipse at 30% 25%, #334155 0%, #172033 48%, #0f172a 100%)",
           }}
         >
           <div
@@ -162,7 +162,7 @@ export function DropZone({ currency = "NGN" }: { currency?: string }) {
           />
           <div className="pointer-events-none absolute inset-2 rounded-[30px] ring-1 ring-white/15" />
 
-          <div className="absolute right-4 top-4 z-20 flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1 text-xs font-bold text-red-600 shadow">
+          <div className="absolute right-4 top-4 z-20 flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1 text-xs font-bold text-blue-700 shadow">
             <ShoppingBag className="h-3.5 w-3.5" />
             {entries.length} item{entries.length === 1 ? "" : "s"}
           </div>
