@@ -14,15 +14,20 @@ function TrayItem({ entry, currency }: { entry: CartEntry; currency: string }) {
   const remove = useCart((s) => s.remove);
   const entries = useCart((s) => s.entries);
   const restore = useCart((s) => s.restore);
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-    id: `tray-${entry.uid}`,
-    data: { uid: entry.uid, kind: "tray" },
-  });
+
+  const { attributes, listeners, setNodeRef, transform, isDragging } =
+    useDraggable({
+      id: `tray-${entry.uid}`,
+      data: { uid: entry.uid, kind: "tray" },
+    });
 
   const handleRemove = async () => {
     const idx = entries.findIndex((e) => e.uid === entry.uid);
+
     remove(entry.uid);
+
     const { toast } = await import("sonner");
+
     toast(`${entry.item.name} removed`, {
       description: formatCurrency(entry.item.price, currency),
       action: {
@@ -64,12 +69,11 @@ function TrayItem({ entry, currency }: { entry: CartEntry; currency: string }) {
         {...attributes}
         className={`relative grid h-full w-full touch-none place-items-center rounded-2xl text-4xl transition-shadow ${
           entry.item.image ? "bg-transparent" : "bg-white ring-1 ring-black/5"
-        } ${
-          isDragging
-            ? "cursor-grabbing"
-            : "cursor-grab"
-        }`}
-        aria-label={`${entry.item.name}, ${formatCurrency(entry.item.price, currency)}. Drag to reposition. Swipe left or right to remove.`}
+        } ${isDragging ? "cursor-grabbing" : "cursor-grab"}`}
+        aria-label={`${entry.item.name}, ${formatCurrency(
+          entry.item.price,
+          currency
+        )}. Drag to reposition. Swipe left or right to remove.`}
       >
         {entry.item.image ? (
           <img
@@ -79,7 +83,9 @@ function TrayItem({ entry, currency }: { entry: CartEntry; currency: string }) {
             draggable={false}
           />
         ) : (
-          <span className="pointer-events-none select-none">{entry.item.emoji}</span>
+          <span className="pointer-events-none select-none">
+            {entry.item.emoji}
+          </span>
         )}
 
         <span
@@ -90,6 +96,7 @@ function TrayItem({ entry, currency }: { entry: CartEntry; currency: string }) {
           {entry.item.name}
         </span>
       </button>
+
       <button
         onClick={handleRemove}
         onPointerDown={(e) => e.stopPropagation()}
@@ -104,30 +111,44 @@ function TrayItem({ entry, currency }: { entry: CartEntry; currency: string }) {
 
 export function DropZone({ currency = "NGN" }: { currency?: string }) {
   const { isOver, setNodeRef } = useDroppable({ id: "meal-tray" });
+
   const entries = useCart((s) => s.entries);
   const move = useCart((s) => s.move);
+
   const total = cartTotal(entries);
   const remaining = Math.max(0, MIN_ORDER - total);
+
   const trayRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const el = trayRef.current;
+
     if (!el) return;
+
     const clamp = () => {
       const w = el.clientWidth;
       const h = el.clientHeight;
+
       if (!w || !h) return;
+
       const maxX = Math.max(8, w - ITEM_SIZE - 8);
       const maxY = Math.max(8, h - ITEM_SIZE - 8);
+
       for (const e of entries) {
         const nx = Math.max(8, Math.min(e.x, maxX));
         const ny = Math.max(8, Math.min(e.y, maxY));
-        if (nx !== e.x || ny !== e.y) move(e.uid, nx, ny);
+
+        if (nx !== e.x || ny !== e.y) {
+          move(e.uid, nx, ny);
+        }
       }
     };
+
     clamp();
+
     const ro = new ResizeObserver(clamp);
     ro.observe(el);
+
     return () => ro.disconnect();
   }, [entries, move]);
 
@@ -141,51 +162,73 @@ export function DropZone({ currency = "NGN" }: { currency?: string }) {
       <div className="relative flex-1 p-3">
         <motion.div
           ref={setRefs}
-          animate={{ scale: isOver ? 1.01 : 1 }}
-          transition={{ type: "spring", stiffness: 300, damping: 25 }}
-          className={`relative h-full w-full overflow-hidden rounded-[42px] border-[10px] transition-colors ${
+          animate={{
+            scale: isOver ? 1.01 : 1,
+          }}
+          transition={{
+            type: "spring",
+            stiffness: 300,
+            damping: 25,
+          }}
+          className={`relative h-full w-full overflow-hidden rounded-[42px] border-[10px] transition-all duration-300 ${
             isOver
-              ? "border-sky-300 shadow-[0_0_0_10px_rgba(56,189,248,0.16),0_30px_60px_-20px_rgba(37,99,235,0.28)]"
-              : "border-slate-800 shadow-[0_20px_50px_-15px_rgba(15,23,42,0.24)]"
+              ? "border-[#ef8b80] shadow-[0_0_0_10px_rgba(214,83,69,0.14),0_30px_60px_-20px_rgba(153,49,42,0.32)]"
+              : "border-[#a83b33] shadow-[0_20px_50px_-15px_rgba(111,32,27,0.30)]"
           }`}
           style={{
             background:
-              "radial-gradient(ellipse at 30% 25%, #334155 0%, #172033 48%, #0f172a 100%)",
+              "radial-gradient(ellipse at 30% 20%, #e66a5d 0%, #d65345 42%, #c4473b 70%, #b43c33 100%)",
           }}
         >
+          {/* Soft tray highlight */}
           <div
             className="pointer-events-none absolute inset-0 rounded-[32px]"
             style={{
               background:
-                "linear-gradient(135deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.04) 35%, rgba(0,0,0,0) 60%)",
+                "linear-gradient(135deg, rgba(255,255,255,0.20) 0%, rgba(255,255,255,0.07) 32%, rgba(255,255,255,0) 62%)",
             }}
           />
-          <div className="pointer-events-none absolute inset-2 rounded-[30px] ring-1 ring-white/15" />
 
-          <div className="absolute right-4 top-4 z-20 flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1 text-xs font-bold text-blue-700 shadow">
+          {/* Inner tray rim */}
+          <div className="pointer-events-none absolute inset-2 rounded-[30px] ring-1 ring-white/20" />
+
+          {/* Item count */}
+          <div className="absolute right-4 top-4 z-20 flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1 text-xs font-bold text-[#b94036] shadow">
             <ShoppingBag className="h-3.5 w-3.5" />
             {entries.length} item{entries.length === 1 ? "" : "s"}
           </div>
 
+          {/* Drag hint */}
           {entries.length > 0 && (
-            <div className="pointer-events-none absolute bottom-3 left-1/2 z-10 -translate-x-1/2 rounded-full bg-black/40 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-white/90 backdrop-blur-sm">
+            <div className="pointer-events-none absolute bottom-3 left-1/2 z-10 -translate-x-1/2 rounded-full bg-[#742b26]/70 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-white/95 backdrop-blur-sm">
               Hold & drag to arrange.
             </div>
           )}
 
+          {/* Empty tray */}
           {entries.length === 0 && (
-            <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center text-white/95">
+            <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center text-white">
               <motion.div
-                animate={{ scale: [1, 1.08, 1], rotate: [0, -4, 4, 0] }}
-                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                animate={{
+                  scale: [1, 1.08, 1],
+                  rotate: [0, -4, 4, 0],
+                }}
+                transition={{
+                  duration: 3,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
                 className="mb-3 text-6xl drop-shadow-lg"
               >
                 🍽️
               </motion.div>
+
               <p className="flex items-center gap-1.5 text-lg font-extrabold uppercase tracking-[0.18em] drop-shadow">
-                <Sparkles className="h-4 w-4" /> Your tray
+                <Sparkles className="h-4 w-4" />
+                Your tray
               </p>
-              <p className="mt-1 text-sm font-medium text-white/85">
+
+              <p className="mt-1 text-sm font-medium text-white/90">
                 Tap items on the menu to add them
               </p>
             </div>
@@ -193,7 +236,11 @@ export function DropZone({ currency = "NGN" }: { currency?: string }) {
 
           <AnimatePresence>
             {entries.map((e) => (
-              <TrayItem key={e.uid} entry={e} currency={currency} />
+              <TrayItem
+                key={e.uid}
+                entry={e}
+                currency={currency}
+              />
             ))}
           </AnimatePresence>
         </motion.div>
@@ -201,7 +248,10 @@ export function DropZone({ currency = "NGN" }: { currency?: string }) {
 
       <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
         <div className="flex items-center justify-between">
-          <span className="text-sm font-medium text-muted-foreground">Total</span>
+          <span className="text-sm font-medium text-muted-foreground">
+            Total
+          </span>
+
           <motion.span
             key={total}
             initial={{ scale: 1.15 }}
