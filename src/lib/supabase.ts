@@ -13,6 +13,7 @@ export interface Restaurant {
   table_count: number;
   order_code_prefix: string;
   is_active: boolean;
+  logo_url: string | null;
 }
 
 // Customers are anonymous — RLS does NOT auto-scope anon queries to a single
@@ -21,7 +22,7 @@ export interface Restaurant {
 export async function resolveRestaurant(slug: string): Promise<Restaurant | null> {
   const { data, error } = await supabase
     .from("restaurants")
-    .select("id, name, slug, currency, table_count, order_code_prefix, is_active")
+    .select("id, name, slug, currency, table_count, order_code_prefix, is_active, logo_url")
     .eq("slug", slug)
     .eq("is_active", true)
     .single();
