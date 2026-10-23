@@ -87,12 +87,21 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
             { name: "twitter:title", content: "Menu-Wave Ordering" },
       { name: "twitter:description", content: "Browse the restaurant menu, build your order and track it from your table." },
     ],
-    links: [
-      {
-        rel: "stylesheet",
-        href: appCss,
-      },
-    ],
+links: [
+  {
+    rel: "stylesheet",
+    href: appCss,
+  },
+  {
+    rel: "icon",
+    type: "image/png",
+    href: "/menu-wave-logo.png",
+  },
+  {
+    rel: "apple-touch-icon",
+    href: "/menu-wave-logo.png",
+  },
+],
   }),
   shellComponent: RootShell,
   component: RootComponent,
