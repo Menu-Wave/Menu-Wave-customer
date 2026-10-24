@@ -13,7 +13,6 @@ export interface Restaurant {
   table_count: number;
   order_code_prefix: string;
   is_active: boolean;
-  logo_url: string | null;
 }
 
 // Customers are anonymous — RLS does NOT auto-scope anon queries to a single
@@ -22,7 +21,7 @@ export interface Restaurant {
 export async function resolveRestaurant(slug: string): Promise<Restaurant | null> {
   const { data, error } = await supabase
     .from("restaurants")
-    .select("id, name, slug, currency, table_count, order_code_prefix, is_active, logo_url")
+    .select("id, name, slug, currency, table_count, order_code_prefix, is_active")
     .eq("slug", slug)
     .eq("is_active", true)
     .single();
@@ -31,7 +30,19 @@ export async function resolveRestaurant(slug: string): Promise<Restaurant | null
 }
 
 export const formatCurrency = (n: number, currency = "NGN") => {
-  const symbols: Record<string, string> = { NGN: "₦", USD: "$", GBP: "£", EUR: "€" };
-  const symbol = symbols[currency] ?? currency + " ";
-  return `${symbol}${n.toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const code = String(currency || "NGN").toUpperCase();
+  const symbols: Record<string, string> = {
+    NGN: "₦",
+    GHS: "GH₵",
+    USD: "$",
+    GBP: "£",
+    EUR: "€",
+    KES: "KSh ",
+    ZAR: "R",
+  };
+  const symbol = symbols[code] ?? `${code} `;
+  return `${symbol}${Number(n).toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
 };
