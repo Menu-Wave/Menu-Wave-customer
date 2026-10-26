@@ -1,106 +1,15 @@
-// Supabase Edge Function: checkout
-// Deploy with: `supabase functions deploy checkout --no-verify-jwt`
-// (or via the Supabase Dashboard → Edge Functions → New function → paste this file)
-
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Max-Age": "86400",
-};
-
-type OrderItem = {
-  name: string;
-  quantity: number;
-  unitPrice: number;
-  subtotal: number;
-};
-
-type CheckoutPayload = {
-  name?: string;
-  order?: OrderItem[];
-  total?: number;
-  table_number?: number;
-  currency?: string;
-  placedAt?: string;
-};
-
-function json(status: number, body: unknown) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
-}
-
-function summarizeOrder(order: OrderItem[]): string {
-  return order
-    .map((i) => `${i.quantity}× ${i.name} @ ${i.unitPrice} = ${i.subtotal}`)
-    .join("\n");
-}
-
-serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { status: 204, headers: corsHeaders });
-  }
-  if (req.method !== "POST") {
-    return json(405, { error: "Method not allowed" });
-  }
-
-  let payload: CheckoutPayload;
-  try {
-    payload = await req.json();
-  } catch {
-    return json(400, { error: "Invalid JSON body" });
-  }
-
-  const { name, order, total, table_number } = payload;
-
-  if (!name || typeof name !== "string" || !name.trim()) {
-    return json(400, { error: "Missing required field: name" });
-  }
-  if (!order || !Array.isArray(order) || order.length === 0) {
-    return json(400, { error: "Missing required field: order" });
-  }
-  if (total === undefined || total === null || typeof total !== "number") {
-    return json(400, { error: "Missing required field: total" });
-  }
-
-  if (table_number !== undefined && table_number !== null) {
-    if (
-      !Number.isInteger(table_number) ||
-      table_number < 1 ||
-      table_number > 50
-    ) {
-      return json(400, {
-        error: "table_number must be an integer between 1 and 50",
-      });
-    }
-  }
-
-  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  const supabase = createClient(supabaseUrl, serviceKey);
-
-  const { data, error } = await supabase
-    .from("orders")
-    .insert({
-      Name: name,
-      Order: summarizeOrder(order),
-      Amount: total,
-      Status: "New",
-      table_number: table_number ?? null,
-    })
-    .select()
-    .single();
-
-  if (error) {
-    console.error("Insert failed", error);
-    return json(500, { error: error.message });
-  }
-
-  return json(200, data);
-});
+const corsHeaders={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Methods":"POST, OPTIONS","Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type","Access-Control-Max-Age":"86400"};
+type RequestedItem={menuItemId:number;quantity:number}; type Payload={restaurantSlug?:string;orderNumber?:string;name?:string;order?:RequestedItem[];table_number?:number};
+const json=(status:number,body:unknown)=>new Response(JSON.stringify(body),{status,headers:{...corsHeaders,"Content-Type":"application/json","Cache-Control":"no-store"}});
+const randomToken=()=>Array.from(crypto.getRandomValues(new Uint8Array(32)),b=>b.toString(16).padStart(2,"0")).join("");
+async function sha256Hex(v:string){const d=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(v));return Array.from(new Uint8Array(d),b=>b.toString(16).padStart(2,"0")).join("");}
+serve(async(req)=>{if(req.method==="OPTIONS")return new Response(null,{status:204,headers:corsHeaders});if(req.method!=="POST")return json(405,{error:"Method not allowed"});if(Number(req.headers.get("content-length")||0)>32000)return json(413,{error:"Request too large"});
+ let p:Payload;try{p=await req.json()}catch{return json(400,{error:"Invalid JSON body"})} const {restaurantSlug,name,order,table_number}=p;
+ if(typeof restaurantSlug!=="string"||!/^[a-z0-9][a-z0-9-]{0,99}$/i.test(restaurantSlug))return json(400,{error:"Invalid restaurant slug"});if(typeof name!=="string"||!name.trim()||name.trim().length>120)return json(400,{error:"Name must be 1–120 characters"});if(!Array.isArray(order)||order.length<1||order.length>50)return json(400,{error:"Order must contain between 1 and 50 items"});
+ for(const i of order)if(!i||!Number.isInteger(i.menuItemId)||i.menuItemId<1||!Number.isInteger(i.quantity)||i.quantity<1||i.quantity>100)return json(400,{error:"Invalid order item"});
+ const url=Deno.env.get("SUPABASE_URL"),key=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");if(!url||!key)return json(500,{error:"Checkout is temporarily unavailable"});const sb=createClient(url,key,{auth:{autoRefreshToken:false,persistSession:false}});
+ const {data:r,error:re}=await sb.from("restaurants").select("id,table_count,order_code_prefix,is_active").eq("slug",restaurantSlug).maybeSingle();if(re||!r)return json(re?500:404,{error:re?"Checkout is temporarily unavailable":"Restaurant not found"});if(!r.is_active)return json(403,{error:"This restaurant is not currently accepting orders"});if(!Number.isInteger(table_number)||table_number<1||table_number>r.table_count)return json(400,{error:`table_number must be between 1 and ${r.table_count}`});
+ const ids=[...new Set(order.map(i=>i.menuItemId))];const {data:menu,error:me}=await sb.from("menu_items").select("id,name,price,is_available").eq("restaurant_id",r.id).in("id",ids);if(me)return json(500,{error:"Unable to validate menu"});if(!menu||menu.length!==ids.length)return json(400,{error:"One or more menu items are invalid"});const byId=new Map(menu.map(i=>[Number(i.id),i]));let total=0;const canonical=[] as {name:string;quantity:number;unitPrice:number;subtotal:number}[];for(const requested of order){const item=byId.get(requested.menuItemId);if(!item||item.is_available===false)return json(409,{error:"One or more menu items are no longer available"});const price=Number(item.price);if(!Number.isFinite(price)||price<0)return json(500,{error:"Invalid menu pricing"});const subtotal=price*requested.quantity;total+=subtotal;canonical.push({name:String(item.name),quantity:requested.quantity,unitPrice:price,subtotal});}if(total>100000000)return json(400,{error:"Order total is too large"});
+ const {data:code,error:ce}=await sb.rpc("generate_public_code",{prefix:r.order_code_prefix});if(ce||typeof code!=="string")return json(503,{error:"Unable to create an order right now"});const token=randomToken(),hash=await sha256Hex(token);const summary=canonical.map(i=>`${i.quantity}× ${i.name} @ ${i.unitPrice} = ${i.subtotal}`).join("\n");const {data:created,error:ie}=await sb.from("orders").insert({restaurant_id:r.id,Name:name.trim(),Order:summary,Amount:total,Status:"New",table_number,order_number:p.orderNumber??null,public_code:code}).select("id,public_code,Status,Amount").single();if(ie||!created)return json(ie?.code==="23505"?409:500,{error:ie?.code==="23505"?"This order request was already submitted.":"Unable to create an order right now"});const {error:te}=await sb.from("order_tracking_tokens").insert({order_id:created.id,token_hash:hash,expires_at:new Date(Date.now()+48*60*60*1000).toISOString()});if(te){await sb.from("orders").delete().eq("id",created.id);return json(500,{error:"Unable to create secure tracking"})}return json(200,{...created,trackingToken:token});});
