@@ -1,8 +1,9 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useState, useEffect } from "react";
-import { Check, X, Clock, ChefHat, Bell } from "lucide-react";
+import { X } from "lucide-react";
 import { useCart, cartTotal } from "@/lib/cart-store";
 import { formatCurrency, type Restaurant } from "@/lib/supabase";
+import { OrderTimeline } from "./OrderTimeline";
 
 const SUPABASE_ANON_KEY = "sb_publishable_6bs0IPax7ctABcDJrcWW5w_3PHfgfvk";
 const CHECKOUT_URL = "https://wxlhhisfexcltjpvcljo.supabase.co/functions/v1/checkout";
@@ -47,10 +48,10 @@ export function CheckoutModal({
   const total = cartTotal(entries);
   const tableNum = Number(tableNumber);
 
-  const grouped = entries.reduce<Record<number, { name: string; emoji: string; price: number; qty: number }>>(
+  const grouped = entries.reduce<Record<number, { id: number; name: string; emoji: string; price: number; qty: number }>>(
     (acc, e) => {
       const k = e.item.id;
-      if (!acc[k]) acc[k] = { name: e.item.name, emoji: e.item.emoji, price: e.item.price, qty: 0 };
+      if (!acc[k]) acc[k] = { id: e.item.id, name: e.item.name, emoji: e.item.emoji, price: e.item.price, qty: 0 };
       acc[k].qty += 1;
       return acc;
     },
@@ -122,11 +123,11 @@ export function CheckoutModal({
     }
 
     const orderNumber = `ORD-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+    // The server is authoritative for names and prices. The browser only sends
+    // stable menu item IDs and quantities.
     const order = Object.values(grouped).map((g) => ({
-      name: g.name,
+      menuItemId: g.id,
       quantity: g.qty,
-      unitPrice: g.price,
-      subtotal: g.price * g.qty,
     }));
 
     try {
@@ -143,7 +144,6 @@ export function CheckoutModal({
           name,
           table_number: tableNum,
           order,
-          total,
           placedAt: new Date().toISOString(),
         }),
       });
@@ -198,55 +198,32 @@ export function CheckoutModal({
             className="w-full max-w-md overflow-hidden rounded-2xl bg-card shadow-2xl"
           >
             {placed ? (
-              <div className="flex flex-col items-center justify-center px-6 py-12 text-center">
-                {status === "done" || status === "ready" ? (
-                  <>
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ type: "spring", stiffness: 300 }}
-                      className="grid h-20 w-20 place-items-center rounded-full bg-primary text-primary-foreground"
-                    >
-                      <Bell className="h-10 w-10" strokeWidth={2.5} />
-                    </motion.div>
-                    <h3 className="mt-4 text-2xl font-extrabold text-foreground">
-                      Table {tableNum} · Your order is ready!
-                    </h3>
-                    <p className="mt-2 text-sm text-muted-foreground">
-                      Please proceed to the counter to collect your meal, {name}.
-                    </p>
-                    <button
-                      onClick={handleCloseAfterDone}
-                      className="mt-6 rounded-xl bg-primary px-6 py-2 text-sm font-bold text-primary-foreground"
-                    >
-                      Got it
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <motion.div
-                      animate={{ rotate: status === "preparing" ? 360 : 0 }}
-                      transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                      className="grid h-20 w-20 place-items-center rounded-full bg-secondary text-foreground"
-                    >
-                      {status === "preparing" ? <ChefHat className="h-10 w-10" /> : <Clock className="h-10 w-10" />}
-                    </motion.div>
-                    <h3 className="mt-4 text-2xl font-extrabold text-foreground">
-                      Table {tableNum} · {status === "preparing" ? "Preparing your meal" : "Order received"}
-                    </h3>
-                    <p className="mt-2 text-sm text-muted-foreground">
-                      Thank you, {name}. {orderCode ? `Order ${orderCode}. ` : ""}
-                      We'll notify you the moment it's ready — feel free to stay on this screen.
-                    </p>
-                    <p className="mt-3 rounded-lg bg-primary/10 px-4 py-2 text-sm font-semibold text-primary">
-                      Please proceed to the counter for payment to confirm your order.
-                    </p>
-                    {!connected && (
-                      <p className="mt-2 text-xs text-amber-600">
-                        Trying to reconnect... if this persists, check with the counter directly.
-                      </p>
-                    )}
-                  </>
+              <div className="px-6 py-7">
+                <div className="text-center">
+                  <p className="text-xs font-black uppercase tracking-[.16em] text-blue-600">Live order status</p>
+                  <h3 className="mt-2 text-2xl font-extrabold text-foreground">Your order</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Table {tableNum}{orderCode ? ` · ${orderCode}` : ""}
+                  </p>
+                </div>
+                <OrderTimeline status={status} />
+                {status === "new" && (
+                  <p className="mt-5 rounded-xl bg-amber-50 px-4 py-3 text-center text-sm font-semibold text-amber-800">
+                    Please proceed to the counter for payment to confirm your order.
+                  </p>
+                )}
+                {status === "ready" && (
+                  <p className="mt-5 rounded-xl bg-green-50 px-4 py-3 text-center text-sm font-semibold text-green-800">
+                    Your meal is ready. Please follow the restaurant's collection/service instructions.
+                  </p>
+                )}
+                {status === "done" && (
+                  <button onClick={handleCloseAfterDone} className="mt-5 w-full rounded-xl bg-primary px-6 py-3 text-sm font-bold text-primary-foreground">
+                    Back to menu
+                  </button>
+                )}
+                {!connected && (
+                  <p className="mt-3 text-center text-xs text-amber-600">Trying to reconnect… your last confirmed status is still shown above.</p>
                 )}
               </div>
             ) : (
