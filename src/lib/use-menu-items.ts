@@ -16,6 +16,10 @@ type Row = {
   emoji: string | null;
   image_url: string | null;
   is_available: boolean | null;
+  description: string | null;
+  is_popular: boolean | null;
+  is_new: boolean | null;
+  display_order: number | null;
 };
 
 // Anon customers are NOT auto-scoped by RLS to a single restaurant the way
@@ -65,7 +69,7 @@ export function useMenuItems(restaurantId: number | null) {
     (async () => {
       const { data, error } = await supabase
         .from("menu_items")
-        .select("id, name, price, category, emoji, image_url, is_available")
+        .select("id, name, price, category, emoji, image_url, is_available, description, is_popular, is_new, display_order")
         .eq("restaurant_id", restaurantId);
       if (cancelled) return;
       if (error) {
@@ -82,9 +86,13 @@ export function useMenuItems(restaurantId: number | null) {
           price: typeof r.price === "string" ? parseFloat(r.price) : Number(r.price ?? 0),
           category: r.category as string,
           emoji: r.emoji ?? "🍽️",
-          image: imageForName(r.name as string) ?? r.image_url ?? undefined,
+          image: r.image_url ?? imageForName(r.name as string) ?? undefined,
+          description: r.description ?? undefined,
+          isPopular: r.is_popular === true,
+          isNew: r.is_new === true,
+          displayOrder: Number(r.display_order ?? 0),
         }))
-        .sort((a, b) => a.id - b.id);
+        .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0) || a.id - b.id);
       setItems(mapped);
       setLoading(false);
     })();
