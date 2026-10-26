@@ -3,7 +3,6 @@ import { MapPin, UtensilsCrossed } from "lucide-react";
 import { useEffect } from "react";
 import { MenuPanel } from "./MenuPanel";
 import { CheckoutBar } from "./CheckoutBar";
-import { Favourites } from "./Favourites";
 import { useCart } from "@/lib/cart-store";
 import { type Restaurant } from "@/lib/supabase";
 
@@ -52,7 +51,6 @@ export function MealBuilder({ restaurant }: { restaurant: Restaurant }) {
           <p className="mt-2 max-w-xl text-sm leading-6 text-slate-500">Pick your favourites, review your cart, and send your order to the restaurant.</p>
         </motion.div>
 
-        <div className="mt-5"><Favourites restaurantId={restaurant.id} /></div>
         <div className="mt-5"><MenuPanel restaurantId={restaurant.id} currency={restaurant.currency} /></div>
       </main>
 
